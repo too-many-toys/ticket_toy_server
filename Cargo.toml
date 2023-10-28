@@ -6,10 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-askama = "*"
-axum = "*"
-tokio = { version = "*", features = ["full"] }
+axum = "0.6.20"
+tokio = { version = "1.33.0", features = ["full"] }
 tracing = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
 serde = { version = "*", features = ["derive"] }
 dotenv = "*"
+reqwest = "*"
+anyhow = "*"
+tower = "*"
+serde_json = "*"
