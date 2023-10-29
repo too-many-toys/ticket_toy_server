@@ -1,0 +1,9 @@
+.vscode/
+.rustfmt.toml
+
+target/
+
+**/k8s/
+**/tests/
+**/*.md
+**/LICENSE
