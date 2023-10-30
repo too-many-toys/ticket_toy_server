@@ -37,7 +37,7 @@ pub struct DBState {
     pub db_url: String,
     pub db_name: String,
 
-    pub client: mongodb::Client,
+    pub client: mongodb::Database,
 }
 
 impl FromRef<AppState> for DBState {
