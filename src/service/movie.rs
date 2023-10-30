@@ -1,15 +1,12 @@
-use axum::{
-    extract::{Query, State},
-    routing::{get, Router},
-};
+use axum::extract::{Query, State};
 use reqwest;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-use crate::{errors::movie::MovieAPIError, errors::AppError, state::MovieState};
+use crate::{config::MovieState, errors::movie::MovieAPIError, errors::AppError};
 
 pub async fn get_movies<'a>(
     Query(query): Query<HashMap<String, String>>,
-    State(state): State<Arc<MovieState>>,
+    State(movie_state): State<MovieState>,
 ) -> Result<String, AppError<'a>> {
     let search_keyword = if let Some(keyword) = query.get("search") {
         keyword
@@ -24,7 +21,7 @@ pub async fn get_movies<'a>(
 
     let movies = reqwest::get(format!(
         "https://api.themoviedb.org/3/search/movie?api_key={}&query={}&include_adult=false&language=ko-kr&page={}",
-        state.movie_api_key, search_keyword, page
+        movie_state.api_key, search_keyword, page
     ))
     .await
     .unwrap()
@@ -35,10 +32,4 @@ pub async fn get_movies<'a>(
     }
 
     Ok(movies.unwrap())
-}
-
-pub fn movie_routes(state: Arc<MovieState>) -> Router {
-    Router::new()
-        .route("/movies", get(get_movies))
-        .with_state(state)
 }

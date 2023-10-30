@@ -1,27 +1,26 @@
 use axum::{routing::get, Router};
 use dotenv;
-use std::{net::SocketAddr, sync::Arc};
-
-mod errors;
-mod movie;
-mod state;
+use std::net::SocketAddr;
+use ticket_toy_server::config::{AppState, MovieState};
+use ticket_toy_server::service;
 
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
     tracing_subscriber::fmt::init();
 
-    let movie_state = Arc::new(state::MovieState {
-        movie_api_key: std::env::var("MOVIE_API_KEY").unwrap(),
-    });
-
-    let movie_routes = movie::movie_routes(movie_state);
+    let app_state = AppState {
+        movie_state: MovieState {
+            api_key: std::env::var("MOVIE_API_KEY").unwrap(),
+        },
+    };
 
     let app = Router::new()
         .route("/health", get("OK"))
-        .nest("/", movie_routes);
+        .nest("/", service::movie_routes())
+        .with_state(app_state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::info!("listening on {}", addr);
 
     axum::Server::bind(&addr)
