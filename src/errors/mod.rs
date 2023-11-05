@@ -6,28 +6,37 @@ use axum::{
 use serde_json::json;
 
 pub mod movie;
+pub mod user;
 
-pub enum AppError<'a> {
-    MovieAPI(movie::MovieAPIError<'a>),
+pub enum AppError {
+    MovieApi(movie::MovieApiError),
+    UserApi(user::UserApiError),
 }
 
-impl<'a> From<movie::MovieAPIError<'a>> for AppError<'a> {
-    fn from(inner: movie::MovieAPIError<'a>) -> Self {
-        AppError::MovieAPI(inner)
+impl<'a> From<movie::MovieApiError> for AppError {
+    fn from(inner: movie::MovieApiError) -> Self {
+        AppError::MovieApi(inner)
     }
 }
 
-impl<'a> IntoResponse for AppError<'a> {
+impl<'a> IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            AppError::MovieAPI(movie::MovieAPIError::API(e)) => {
-                tracing::error!("Call API failed: {}", e);
-                (StatusCode::EXPECTATION_FAILED, json!({"msg": "api error"}))
+            AppError::MovieApi(movie::MovieApiError::API(e)) => {
+                tracing::error!("Call movie API failed: {}", e);
+                (
+                    StatusCode::EXPECTATION_FAILED,
+                    json!({"msg": "movie api error"}),
+                )
             }
-            AppError::MovieAPI(movie::MovieAPIError::Input(input, value)) => (
+            AppError::MovieApi(movie::MovieApiError::Input(input, value)) => (
                 StatusCode::BAD_REQUEST,
                 json!({"msg": "Invalid input", "input": input, "value": value}),
             ),
+            AppError::UserApi(user::UserApiError::JWT(e)) => {
+                tracing::error!("Call user API failed: {}", e);
+                (StatusCode::EXPECTATION_FAILED, json!({"msg": "jwt error"}))
+            }
         };
 
         let body = Json(json!({

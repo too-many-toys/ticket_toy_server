@@ -2,16 +2,19 @@ use axum::extract::{Query, State};
 use reqwest;
 use std::collections::HashMap;
 
-use crate::{config::MovieState, errors::movie::MovieAPIError, errors::AppError};
+use crate::{config::MovieState, errors::movie::MovieApiError, errors::AppError};
 
 pub async fn get_movies<'a>(
     Query(query): Query<HashMap<String, String>>,
     State(movie_state): State<MovieState>,
-) -> Result<String, AppError<'a>> {
+) -> Result<String, AppError> {
     let search_keyword = if let Some(keyword) = query.get("search") {
         keyword
     } else {
-        return Err(AppError::MovieAPI(MovieAPIError::Input("search", None)));
+        return Err(AppError::MovieApi(MovieApiError::Input(
+            "search".to_string(),
+            None,
+        )));
     };
     let page = if let Some(page) = query.get("page") {
         page
@@ -28,7 +31,7 @@ pub async fn get_movies<'a>(
     .text()
     .await;
     if let Err(e) = movies {
-        return Err(AppError::MovieAPI(MovieAPIError::API(e.to_string())));
+        return Err(AppError::MovieApi(MovieApiError::API(e.to_string())));
     }
 
     Ok(movies.unwrap())

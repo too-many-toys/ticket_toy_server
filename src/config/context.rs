@@ -1,4 +1,6 @@
-use super::{AppState, DBState, MovieState, UserState};
+use crate::model::user::User;
+
+use super::{AppState, AuthState, MovieState, UserState};
 use dotenv;
 use mongodb::{options::ClientOptions, Client, Database};
 
@@ -18,11 +20,10 @@ pub async fn load() -> Result<AppState, mongodb::error::Error> {
         user_state: UserState {
             kakao_api_key: std::env::var("KAKAO_API_KEY").unwrap(),
             kakao_redirect_url: std::env::var("KAKAO_REDIRECT_URL").unwrap(),
+            collection: client.collection::<User>("users"),
         },
-        db_state: DBState {
-            db_url,
-            db_name,
-            client,
+        auth_state: AuthState {
+            jwt_secret: std::env::var("JWT_SECRET").unwrap(),
         },
     };
 

@@ -1,4 +1,7 @@
 use axum::extract::FromRef;
+use mongodb::Collection;
+
+use crate::model::user::User;
 
 pub mod context;
 
@@ -6,7 +9,7 @@ pub mod context;
 pub struct AppState {
     pub movie_state: MovieState,
     pub user_state: UserState,
-    pub db_state: DBState,
+    pub auth_state: AuthState,
 }
 
 #[derive(Clone)]
@@ -24,6 +27,7 @@ impl FromRef<AppState> for MovieState {
 pub struct UserState {
     pub kakao_api_key: String,
     pub kakao_redirect_url: String,
+    pub collection: Collection<User>,
 }
 
 impl FromRef<AppState> for UserState {
@@ -33,15 +37,12 @@ impl FromRef<AppState> for UserState {
 }
 
 #[derive(Clone)]
-pub struct DBState {
-    pub db_url: String,
-    pub db_name: String,
-
-    pub client: mongodb::Database,
+pub struct AuthState {
+    pub jwt_secret: String,
 }
 
-impl FromRef<AppState> for DBState {
-    fn from_ref(app_state: &AppState) -> DBState {
-        app_state.db_state.clone()
+impl FromRef<AppState> for AuthState {
+    fn from_ref(app_state: &AppState) -> AuthState {
+        app_state.auth_state.clone()
     }
 }

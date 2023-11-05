@@ -1,4 +1,4 @@
-pub enum MovieAPIError<'a> {
-    Input(&'a str, Option<&'a str>),
+pub enum MovieApiError {
+    Input(String, Option<String>),
     API(String),
 }
