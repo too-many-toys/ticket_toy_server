@@ -22,3 +22,5 @@ jsonwebtoken = "9"
 chrono = "*"
 validator = "*"
 axum-valid = "*"
+tower-http = { version = "*", features = ["cors"] }
+hyper = "*"

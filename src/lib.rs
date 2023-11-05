@@ -1,7 +1,9 @@
 use std::net::SocketAddr;
 
 use anyhow::Context;
-use axum::{routing::get, Router};
+use axum::{http::HeaderValue, routing::get, Router};
+use hyper::header::CONTENT_TYPE;
+use tower_http::cors::{Any, CorsLayer};
 
 pub mod auth;
 pub mod config;
@@ -17,6 +19,12 @@ pub async fn start_server() -> Result<(), anyhow::Error> {
         .nest("/", service::movie_routes())
         .nest("/user", service::user_routes())
         .nest("/oauth", service::oauth_routers())
+        .layer(
+            CorsLayer::new()
+                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_methods(Any)
+                .allow_headers(vec![CONTENT_TYPE]),
+        )
         .with_state(app_state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
