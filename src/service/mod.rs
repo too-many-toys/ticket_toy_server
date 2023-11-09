@@ -7,7 +7,9 @@ pub mod oauth;
 pub mod user;
 
 pub fn movie_routes() -> Router<AppState> {
-    Router::new().route("/movies", get(movie::get_movies))
+    Router::new()
+        .route("/movies", get(movie::movies))
+        .route("/posters", get(movie::posters))
 }
 
 pub fn user_routes() -> Router<AppState> {
