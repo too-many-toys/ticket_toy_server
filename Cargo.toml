@@ -12,7 +12,7 @@ tracing = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
 serde = { version = "*", features = ["derive"] }
 dotenv = "*"
-reqwest = "*"
+reqwest = { version = "*", features = ["json"] }
 anyhow = "*"
 tower = "*"
 serde_json = "*"
@@ -20,7 +20,7 @@ serde_urlencoded = "*"
 mongodb = "2.7.0"
 jsonwebtoken = "9"
 chrono = "*"
-validator = "*"
 axum-valid = "*"
 tower-http = { version = "*", features = ["cors"] }
 hyper = "*"
+validator = { version = "*", features = ["derive"] }

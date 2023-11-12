@@ -9,6 +9,7 @@ pub mod movie;
 pub mod user;
 
 pub enum AppError {
+    Api(String),
     MovieApi(movie::MovieApiError),
     UserApi(user::UserApiError),
 }
@@ -36,6 +37,13 @@ impl<'a> IntoResponse for AppError {
             AppError::UserApi(user::UserApiError::JWT(e)) => {
                 tracing::error!("Call user API failed: {}", e);
                 (StatusCode::EXPECTATION_FAILED, json!({"msg": "jwt error"}))
+            }
+            AppError::Api(e) => {
+                tracing::error!("Call API failed: {}", e);
+                (
+                    StatusCode::EXPECTATION_FAILED,
+                    json!({"msg": "api call error"}),
+                )
             }
         };
 

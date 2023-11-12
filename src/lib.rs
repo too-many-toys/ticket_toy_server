@@ -9,6 +9,7 @@ pub mod auth;
 pub mod config;
 pub mod errors;
 pub mod model;
+pub mod request;
 pub mod service;
 
 pub async fn start_server() -> Result<(), anyhow::Error> {
@@ -16,7 +17,7 @@ pub async fn start_server() -> Result<(), anyhow::Error> {
 
     let app = Router::new()
         .route("/health", get("OK"))
-        .nest("/", service::movie_routes())
+        .nest("/movie", service::movie_routes())
         .nest("/user", service::user_routes())
         .nest("/oauth", service::oauth_routers())
         .layer(

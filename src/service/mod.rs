@@ -1,19 +1,24 @@
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 use crate::config::AppState;
 
-pub mod movie;
+pub mod movie_api;
 pub mod oauth;
 pub mod user;
 
 pub fn movie_routes() -> Router<AppState> {
     Router::new()
-        .route("/movies", get(movie::movies))
-        .route("/posters", get(movie::posters))
+        .route("/list", get(movie_api::movie_list::get))
+        .route("/posters", get(movie_api::posters::get))
+        .route("/:movie_id", get(movie_api::movie::get))
+        .route("/i", post(movie_api::movie::insert))
 }
 
 pub fn user_routes() -> Router<AppState> {
-    Router::new().route("/signin", get(user::signin))
+    Router::new().route("/signin", post(user::signin))
 }
 
 pub fn oauth_routers() -> Router<AppState> {

@@ -1,42 +1,53 @@
-use axum::{extract::State, http::HeaderMap, Json};
-use mongodb::{bson::doc, options::FindOneAndUpdateOptions};
+use axum::{extract::State, Json};
+use mongodb::{bson::doc, options::UpdateOptions};
 use serde::{Deserialize, Serialize};
 
-use crate::{auth, config::UserState, errors::AppError};
+use crate::{auth, config::UserState, errors::AppError, model::user::UserAccountType};
 
 #[derive(Serialize, Deserialize)]
 pub struct UserId {
-    pub user_id: String,
+    pub uid: String,
+    pub account_type: UserAccountType,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SigninResponse {
+    pub token: String,
 }
 
 pub async fn signin(
-    headers: HeaderMap,
     State(user_state): State<UserState>,
     Json(payload): Json<UserId>,
-) -> Result<String, AppError> {
-    // let authorization = headers
-    //     .get("Authorization")
-    //     .ok_or(AppError::UserApi(UserApiError::JWT(
-    //         "not exist authorization".to_string(),
-    //     )))?
-    //     .to_str()
-    //     .unwrap()
-    //     .to_string();
-
-    let options = FindOneAndUpdateOptions::builder()
-        .upsert(Some(true))
-        .build();
-    user_state
+) -> Result<Json<SigninResponse>, AppError> {
+    let options = UpdateOptions::builder().upsert(Some(true)).build();
+    let result = user_state
         .collection
-        .find_one_and_update(
-            doc! {"uid": payload.user_id.clone()},
-            doc! {"$set": {"uid": payload.user_id.clone()}},
+        .update_one(
+            doc! {"uid": payload.uid.clone()},
+            doc! {"$set": {"uid": payload.uid.clone(), "account_type": payload.account_type.clone()}},
             options,
         )
-        .await
-        .unwrap();
+        .await;
+    if let Err(e) = result {
+        return Err(AppError::Api(e.to_string()));
+    }
 
-    let jwt = auth::create(payload.user_id, 2592000);
+    let jwt = auth::create(payload.uid, 2592000);
 
-    Ok(jwt.unwrap())
+    Ok(Json(SigninResponse {
+        token: jwt.unwrap(),
+    }))
 }
+
+pub async fn set_user_info() {}
+
+// pub async fn movies(headers: HeaderMap) {
+//     let authorization = headers
+//         .get("Authorization")
+//         .ok_or(AppError::UserApi(UserApiError::JWT(
+//             "not exist authorization".to_string(),
+//         )))?
+//         .to_str()
+//         .unwrap()
+//         .to_string();
+// }

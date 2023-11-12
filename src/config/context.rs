@@ -1,10 +1,11 @@
-use crate::model::user::User;
+use crate::model::{movie::Movie, user::User};
 
 use super::{AppState, AuthState, MovieState, UserState};
 use dotenv;
 use mongodb::{options::ClientOptions, Client, Database};
 
 pub async fn load() -> Result<AppState, mongodb::error::Error> {
+    // TODO: for not production
     dotenv::dotenv().ok();
     tracing_subscriber::fmt::init();
 
@@ -16,6 +17,7 @@ pub async fn load() -> Result<AppState, mongodb::error::Error> {
     let app_state = AppState {
         movie_state: MovieState {
             api_key: std::env::var("MOVIE_API_KEY").unwrap(),
+            collection: client.collection::<Movie>("movies"),
         },
         user_state: UserState {
             kakao_api_key: std::env::var("KAKAO_API_KEY").unwrap(),

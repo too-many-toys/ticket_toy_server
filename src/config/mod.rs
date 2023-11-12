@@ -1,7 +1,7 @@
 use axum::extract::FromRef;
 use mongodb::Collection;
 
-use crate::model::user::User;
+use crate::model::{movie::Movie, user::User};
 
 pub mod context;
 
@@ -15,6 +15,7 @@ pub struct AppState {
 #[derive(Clone)]
 pub struct MovieState {
     pub api_key: String,
+    pub collection: Collection<Movie>,
 }
 
 impl FromRef<AppState> for MovieState {
