@@ -4,9 +4,10 @@ use axum::{
     response::{IntoResponse, Redirect},
     Json,
 };
+use mongodb::{bson::doc, options::UpdateOptions};
 use serde::{Deserialize, Serialize};
 
-use crate::config::UserState;
+use crate::{auth, config::UserState, errors::AppError};
 
 #[derive(Deserialize, Serialize)]
 pub struct KakaoOauth {
@@ -39,6 +40,29 @@ pub struct UserBody {
     pub target_id_type: String,
     pub target_id: String,
 }
+// {
+//     "access_token": "u8kEAwr09sHWsz7KO2Ury7grmeAdUfVDsREKKiVQAAABi8NYvT-xu3fh8M0xkQ",
+//     "token_type": "bearer",
+//     "refresh_token": "toc-IDHEeJ7QEuBJWqnNUtiWxh52wC5Aph0KKiVQAAABi8NYvTyxu3fh8M0xkQ",
+//     "expires_in": 21599,
+//     "refresh_token_expires_in": 5183999
+//     }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Access {
+    pub access_token: String,
+    pub token_type: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SigninResponse {
+    pub token: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UserInfoRes {
+    pub id: i64,
+}
 
 pub async fn kakao_login(State(user_state): State<UserState>) -> impl IntoResponse {
     Redirect::permanent(&format!(
@@ -50,7 +74,7 @@ pub async fn kakao_login(State(user_state): State<UserState>) -> impl IntoRespon
 pub async fn kakao_redirect(
     query: Option<Query<Querys>>,
     State(user_state): State<UserState>,
-) -> impl IntoResponse {
+) -> Result<Json<SigninResponse>, AppError> {
     let Query(query) = query.unwrap();
     let client_id = std::env::var("KAKAO_API_KEY").expect("no kakao api key");
 
@@ -70,11 +94,45 @@ pub async fn kakao_redirect(
         .send()
         .await
         .unwrap()
-        .text()
+        .json::<Access>()
         .await
         .unwrap();
 
-    (StatusCode::OK, res)
+    let access_token = res.access_token;
+
+    let client = reqwest::Client::new();
+    let res = client
+        .get("https://kapi.kakao.com/v2/user/me")
+        .header("Authorization", format!("Bearer {}", access_token))
+        .header(
+            "Content-type",
+            "application/x-www-form-urlencoded;charset=utf-8",
+        )
+        .send()
+        .await
+        .unwrap()
+        .json::<UserInfoRes>()
+        .await
+        .unwrap();
+
+    let options = UpdateOptions::builder().upsert(Some(true)).build();
+    let result = user_state
+        .collection
+        .update_one(
+            doc! {"uid": res.id.to_string()},
+            doc! {"$set": {"uid": res.id.to_string(), "account_type": "Kakao"}},
+            options,
+        )
+        .await;
+    if let Err(e) = result {
+        return Err(AppError::Api(e.to_string()));
+    }
+
+    let jwt = auth::create(res.id.to_string(), 2592000);
+
+    Ok(Json(SigninResponse {
+        token: jwt.unwrap(),
+    }))
 }
 
 /*
