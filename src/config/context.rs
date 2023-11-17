@@ -1,8 +1,19 @@
-use crate::model::{movie::Movie, user::User};
+use crate::model::{
+    me_too::MeToo,
+    movie::Movie,
+    my_collection::{collection_schema, MyCollection},
+    user::{user_schema, User},
+};
 
 use super::{AppState, AuthState, MovieState, UserState};
 use dotenv;
-use mongodb::{options::ClientOptions, Client, Database};
+use mongodb::{
+    bson::doc,
+    options::{
+        ClientOptions, ClusteredIndex, CreateCollectionOptions, ValidationAction, ValidationLevel,
+    },
+    Client, Collection, Database, IndexModel,
+};
 
 pub async fn load() -> Result<AppState, mongodb::error::Error> {
     // TODO: for not production
@@ -13,6 +24,12 @@ pub async fn load() -> Result<AppState, mongodb::error::Error> {
     let db_url = std::env::var("DB_URL").unwrap();
 
     let client = connect_db(&db_url, &db_name).await?;
+
+    create_user_collection(&client).await;
+    create_collection_collection(&client).await;
+    create_me_too_collection(&client).await;
+    create_collection_index(client.collection::<MyCollection>("collections")).await;
+    create_me_too_index(client.collection::<MeToo>("me_too")).await;
 
     let app_state = AppState {
         movie_state: MovieState {
@@ -45,4 +62,130 @@ pub async fn connect_db(
     tracing::info!("Connected to database: {}", db_name);
 
     Ok(db)
+}
+
+pub async fn create_user_collection(db: &Database) {
+    let is_exists = db.list_collection_names(doc! {}).await.unwrap();
+    for name in is_exists {
+        if name == "users" {
+            return;
+        }
+    }
+
+    let clustered_index = ClusteredIndex::default();
+    let validation_opts = CreateCollectionOptions::builder()
+        // .validator(user_schema())
+        // .validation_action(Some(ValidationAction::Error))
+        // .validation_level(Some(ValidationLevel::Strict))
+        .clustered_index(clustered_index)
+        .build();
+
+    match db.create_collection("users", validation_opts).await {
+        Ok(_) => {
+            tracing::info!("Created collection: users");
+        }
+        Err(e) => {
+            tracing::error!("Failed to create collection: users");
+            tracing::error!("Error: {}", e);
+        }
+    }
+}
+
+pub async fn create_collection_collection(db: &Database) {
+    let is_exists = db.list_collection_names(doc! {}).await.unwrap();
+    for name in is_exists {
+        if name == "collections" {
+            return;
+        }
+    }
+
+    let clustered_index = ClusteredIndex::default();
+    let validation_opts = CreateCollectionOptions::builder()
+        // .validator(collection_schema())
+        // .validation_action(Some(ValidationAction::Error))
+        // .validation_level(Some(ValidationLevel::Strict))
+        .clustered_index(clustered_index)
+        .build();
+
+    match db.create_collection("collections", validation_opts).await {
+        Ok(_) => {
+            tracing::info!("Created collection: collections");
+        }
+        Err(e) => {
+            tracing::error!("Failed to create collection: collections");
+            tracing::error!("Error: {}", e);
+        }
+    }
+}
+
+pub async fn create_collection_index(col: Collection<MyCollection>) {
+    // 인덱스 만들 때 먼저 지우기 옵션
+    // let drop_opt = DropIndexesOptions::builder().build();
+    // col.drop_indexes(drop_opt).await;
+
+    let author_index = IndexModel::builder().keys(doc! {"author_id": 1}).build();
+    let is_post_index = IndexModel::builder().keys(doc! {"is_post": 1}).build();
+
+    match col.create_index(author_index, None).await {
+        Ok(_) => {
+            tracing::info!("Created index: collections.author_id");
+        }
+        Err(e) => {
+            tracing::error!("Failed to create index: collections.author_id");
+            tracing::error!("Error: {}", e);
+        }
+    }
+
+    match col.create_index(is_post_index, None).await {
+        Ok(_) => {
+            tracing::info!("Created index: collections.is_post");
+        }
+        Err(e) => {
+            tracing::error!("Failed to create index: collections.is_post");
+            tracing::error!("Error: {}", e);
+        }
+    }
+}
+
+pub async fn create_me_too_collection(db: &Database) {
+    let is_exists = db.list_collection_names(doc! {}).await.unwrap();
+    for name in is_exists {
+        if name == "me_too" {
+            return;
+        }
+    }
+
+    let clustered_index = ClusteredIndex::default();
+    let validation_opts = CreateCollectionOptions::builder()
+        // .validator(doc! {})
+        // .validation_action(Some(ValidationAction::Error))
+        // .validation_level(Some(ValidationLevel::Strict))
+        .clustered_index(clustered_index)
+        .build();
+
+    match db.create_collection("me_too", validation_opts).await {
+        Ok(_) => {
+            tracing::info!("Created collection: me_too");
+        }
+        Err(e) => {
+            tracing::error!("Failed to create collection: me_too");
+            tracing::error!("Error: {}", e);
+        }
+    }
+}
+
+pub async fn create_me_too_index(col: Collection<MeToo>) {
+    let col_index = IndexModel::builder()
+        .keys(doc! {"my_collection_id": 1})
+        .build();
+
+    match col.create_index(col_index, None).await {
+        Ok(_) => {
+            tracing::info!("Created index: me_too.my_collection_id");
+        }
+        Err(e) => {
+            tracing::error!("Failed to create index: me_too.my_collection_id");
+            tracing::error!("Error: {}", e);
+        }
+    }
 }

@@ -1,4 +1,4 @@
-use mongodb::bson::{oid::ObjectId, Bson};
+use mongodb::bson::{doc, oid::ObjectId, Bson};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -48,5 +48,44 @@ pub enum UserAccountType {
 impl From<UserAccountType> for Bson {
     fn from(t: UserAccountType) -> Bson {
         mongodb::bson::to_bson(&t).unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    pub exp: usize,
+    pub sub: String,
+}
+
+pub fn user_schema() -> mongodb::bson::Document {
+    doc! {
+        "$jsonSchema": doc! {
+            "bsonType": "object",
+            "title": "User Object Validation",
+            "required": ["uid", "account_type"],
+            "properties": doc! {
+               "uid": doc! {
+                    "bsonType": "string",
+                    "description": "must be a string and is required",
+                },
+                "email": doc! {
+                    "bsonType": "string",
+                    "description": "must be a string",
+                },
+                "nickname": doc! {
+                    "bsonType": "string",
+                    "description": "must be a string",
+                },
+                "age": doc! {
+                    "bsonType": "string",
+                    "description": "must be a string",
+                },
+                "account_type": doc! {
+                    "bsonType": "string",
+                    "description": "must be a string and is required",
+                    "enum": vec!["Kakao", "Naver", "Google", "Apple", "Service"],
+                },
+            }
+         }
     }
 }

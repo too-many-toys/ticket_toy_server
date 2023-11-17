@@ -9,6 +9,7 @@ pub mod movie;
 pub mod user;
 
 pub enum AppError {
+    Auth(),
     Api(String),
     MovieApi(movie::MovieApiError),
     UserApi(user::UserApiError),
@@ -44,6 +45,10 @@ impl<'a> IntoResponse for AppError {
                     StatusCode::EXPECTATION_FAILED,
                     json!({"msg": "api call error"}),
                 )
+            }
+            AppError::Auth() => {
+                tracing::error!("Auth failed");
+                (StatusCode::UNAUTHORIZED, json!({"msg": "auth failed"}))
             }
         };
 

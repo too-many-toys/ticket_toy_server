@@ -1,8 +1,12 @@
 use std::net::SocketAddr;
 
 use anyhow::Context;
-use axum::{http::HeaderValue, routing::get, Router};
-use hyper::header::CONTENT_TYPE;
+use axum::{
+    http::header::{AUTHORIZATION, CONTENT_TYPE},
+    http::HeaderValue,
+    routing::get,
+    Router,
+};
 use tower_http::cors::{Any, CorsLayer};
 
 pub mod auth;
@@ -19,12 +23,14 @@ pub async fn start_server() -> Result<(), anyhow::Error> {
         .route("/health", get("OK"))
         .nest("/movie", service::movie_routes())
         .nest("/user", service::user_routes())
-        .nest("/oauth", service::oauth_routers())
         .layer(
             CorsLayer::new()
-                .allow_origin("*".parse::<HeaderValue>().unwrap())
+                .allow_origin([
+                    "http://localhost:7357".parse::<HeaderValue>().unwrap(),
+                    "https://totd.xyz".parse::<HeaderValue>().unwrap(),
+                ])
                 .allow_methods(Any)
-                .allow_headers(vec![CONTENT_TYPE]),
+                .allow_headers(vec![CONTENT_TYPE, AUTHORIZATION]),
         )
         .with_state(app_state);
 
