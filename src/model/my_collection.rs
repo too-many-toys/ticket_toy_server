@@ -9,13 +9,34 @@ pub struct MyCollection {
     pub movie_id: i64,
     pub movie_title: String,
     pub genre: Option<Vec<super::movie::Genre>>,
-    pub image_url: Option<String>,
-    pub rating: Option<i64>,
+    pub image_url: String,
+    pub rating: Option<f64>,
     pub content: Option<String>,
     pub is_post: bool,
     pub me_too: u64,
-    pub created_at: DateTime,
+    pub watched_at: Option<DateTime>,
+    pub created_at: Option<DateTime>,
     pub updated_at: DateTime,
+}
+
+impl Default for MyCollection {
+    fn default() -> Self {
+        Self {
+            id: None,
+            author_id: ObjectId::new(),
+            movie_id: 0,
+            movie_title: "".to_string(),
+            genre: None,
+            image_url: "".to_string(),
+            rating: None,
+            content: None,
+            is_post: false,
+            me_too: 0,
+            watched_at: None,
+            created_at: Some(DateTime::now()),
+            updated_at: DateTime::now(),
+        }
+    }
 }
 
 pub fn collection_schema() -> Document {
@@ -77,6 +98,10 @@ pub fn collection_schema() -> Document {
                     "bsonType": "int",
                     "description": "must be a int",
                     "minimum": 0
+                },
+                "watched_at": {
+                    "bsonType": "date",
+                    "description": "must be a date"
                 },
                 "created_at": {
                     "bsonType": "date",
