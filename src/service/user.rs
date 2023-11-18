@@ -46,6 +46,7 @@ pub async fn signin(
     State(user_state): State<UserState>,
     Json(payload): Json<UserId>,
 ) -> Result<Json<SigninResponse>, AppError> {
+    tracing::info!("1");
     let user = user_state
         .collection
         .find_one(doc! {"uid": payload.uid.clone()}, None)
@@ -55,7 +56,7 @@ pub async fn signin(
     } else {
         user.unwrap()
     };
-
+    tracing::info!("2");
     let user_id = if let None = user {
         let user = user_state
             .collection
@@ -76,14 +77,14 @@ pub async fn signin(
         } else {
             user.unwrap()
         };
-
+        tracing::info!("3");
         user.inserted_id.to_string()
     } else {
         user.unwrap().id.unwrap().to_string()
     };
 
     let jwt = auth::create(user_id);
-
+    tracing::info!("4");
     Ok(Json(SigninResponse {
         token: jwt.unwrap(),
     }))
