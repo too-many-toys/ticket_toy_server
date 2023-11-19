@@ -137,8 +137,8 @@ pub async fn put_my_collection(
                 }
             }
             "image" => {
-                let path = sha256::digest(token.sub.clone());
-                let path = format!("/usr/local/var/images/{}", path);
+                let folder_name = sha256::digest(token.sub.clone());
+                let path = format!("/usr/local/var/images/{}", folder_name);
                 let filename = uuid::Uuid::new_v4();
                 let url = format!("{}.jpg", filename);
 
@@ -146,11 +146,7 @@ pub async fn put_my_collection(
                     tokio::fs::create_dir(&path).await.unwrap();
                 }
                 let result = write(
-                    format!(
-                        "/usr/local/var/images/{}/{}",
-                        token.sub.clone(),
-                        url.clone()
-                    ),
+                    format!("/usr/local/var/images/{}/{}", folder_name, url.clone()),
                     field.bytes().await.unwrap(),
                 )
                 .await;
