@@ -110,7 +110,7 @@ pub async fn put_my_collection(
 ) -> Result<String, AppError> {
     let mut my_collection = MyCollection::default();
     my_collection.author_id = ObjectId::from_str(token.sub.clone().as_str()).unwrap();
-    while let Some(mut field) = multipart.next_field().await.unwrap() {
+    while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.name().unwrap().to_string();
 
         match name.as_str() {
@@ -137,16 +137,12 @@ pub async fn put_my_collection(
                 }
             }
             "image" => {
-                let folder_name = sha256::digest(token.sub.clone());
-                let path = format!("/usr/local/var/images/{}", folder_name);
+                let path = "/usr/local/var/images/";
                 let filename = uuid::Uuid::new_v4();
                 let url = format!("{}.jpg", filename);
 
-                if !Path::new(&path).exists() {
-                    tokio::fs::create_dir(&path).await.unwrap();
-                }
                 let result = write(
-                    format!("/usr/local/var/images/{}/{}", folder_name, url.clone()),
+                    format!("{}/{}", path, url.clone()),
                     field.bytes().await.unwrap(),
                 )
                 .await;
