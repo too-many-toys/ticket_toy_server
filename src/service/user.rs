@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use axum::{
-    extract::{Multipart, State},
+    extract::{Multipart, Path, Query, State},
     Extension, Json,
 };
 use futures::TryStreamExt;
@@ -31,7 +31,7 @@ impl Default for ReqGetMyCollections {
     }
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize, Default, Debug)]
 pub struct ResGetMyCollections {
     pub collections: Vec<MyCollection>,
 }
@@ -171,11 +171,12 @@ pub async fn put_my_collection(
 pub async fn get_my_collection(
     Extension(token): Extension<Claims>,
     State(mc_state): State<MyCollectionState>,
+    Path(id): Path<String>,
 ) -> Result<Json<MyCollection>, AppError> {
     let result = if let Ok(r) = mc_state
         .collection
         .find_one(
-            doc! {"author_id": ObjectId::from_str(token.sub.as_str()).unwrap()},
+            doc! {"id": id, "author_id": ObjectId::from_str(token.sub.as_str()).unwrap()},
             None,
         )
         .await
@@ -190,7 +191,7 @@ pub async fn get_my_collection(
 pub async fn get_my_collections(
     Extension(token): Extension<Claims>,
     State(mc_state): State<MyCollectionState>,
-    Json(payload): Json<ReqGetMyCollections>,
+    Query(payload): Query<ReqGetMyCollections>,
 ) -> Result<Json<ResGetMyCollections>, AppError> {
     let skip = payload.skip;
     let opt = FindOptions::builder()
