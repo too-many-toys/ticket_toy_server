@@ -24,6 +24,8 @@ pub fn user_routes() -> Router<AppState> {
     Router::new()
         // Multipart
         .route("/collection", post(user::put_my_collection))
+        .route("/collection", get(user::get_my_collection))
+        .route("/collections", get(user::get_my_collections))
         .route_layer(middleware::from_fn(auth_middleware))
         .route("/signin", post(user::signin))
 }

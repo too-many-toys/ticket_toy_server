@@ -1,13 +1,12 @@
 use std::str::FromStr;
 
-use std::path::Path;
-
 use axum::{
-    body::Bytes,
     extract::{Multipart, State},
     Extension, Json,
 };
+use futures::TryStreamExt;
 use mongodb::bson::{doc, oid::ObjectId, DateTime};
+use mongodb::options::FindOptions;
 use serde::{Deserialize, Serialize};
 use tokio::fs::write;
 
@@ -21,14 +20,20 @@ use crate::{
     },
 };
 
-pub struct ReqMyCollection {
-    movie_id: i64,
-    movie_title: String,
-    is_post: Option<bool>,
-    watched_at: Option<String>,
-    rating: Option<f64>,
-    content: Option<String>,
-    image: Bytes,
+#[derive(Deserialize, Debug)]
+pub struct ReqGetMyCollections {
+    #[serde(default)]
+    pub skip: u64,
+}
+impl Default for ReqGetMyCollections {
+    fn default() -> Self {
+        ReqGetMyCollections { skip: 0 }
+    }
+}
+
+#[derive(Serialize, Default)]
+pub struct ResGetMyCollections {
+    pub collections: Vec<MyCollection>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -161,4 +166,58 @@ pub async fn put_my_collection(
     }
 
     Ok(Json("OK".to_string()))
+}
+
+pub async fn get_my_collection(
+    Extension(token): Extension<Claims>,
+    State(mc_state): State<MyCollectionState>,
+) -> Result<Json<MyCollection>, AppError> {
+    let result = if let Ok(r) = mc_state
+        .collection
+        .find_one(
+            doc! {"author_id": ObjectId::from_str(token.sub.as_str()).unwrap()},
+            None,
+        )
+        .await
+    {
+        r.unwrap()
+    } else {
+        return Err(AppError::Api("".to_string()));
+    };
+
+    Ok(Json(result))
+}
+pub async fn get_my_collections(
+    Extension(token): Extension<Claims>,
+    State(mc_state): State<MyCollectionState>,
+    Json(payload): Json<ReqGetMyCollections>,
+) -> Result<Json<ResGetMyCollections>, AppError> {
+    let skip = payload.skip;
+    let opt = FindOptions::builder()
+        .sort(doc! {"created_at": -1})
+        .skip(skip)
+        .limit(50)
+        .build();
+    let mut cursor = if let Ok(r) = mc_state
+        .collection
+        .find(
+            doc! {"author_id": ObjectId::from_str(token.sub.as_str()).unwrap()},
+            opt,
+        )
+        .await
+    {
+        r
+    } else {
+        return Err(AppError::Api("".to_string()));
+    };
+
+    let mut result = ResGetMyCollections {
+        collections: Vec::<MyCollection>::new(),
+    };
+
+    while let Some(r) = cursor.try_next().await.unwrap() {
+        result.collections.push(r);
+    }
+
+    Ok(Json(result))
 }
