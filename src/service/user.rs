@@ -133,7 +133,7 @@ pub async fn put_my_collection(
             }
             "content" => {
                 if let Ok(r) = field.text().await {
-                    my_collection.rating = Some(r);
+                    my_collection.content = Some(r);
                 }
             }
             "image" => {
