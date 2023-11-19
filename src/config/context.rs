@@ -5,7 +5,7 @@ use crate::model::{
     user::{user_schema, User},
 };
 
-use super::{AppState, AuthState, MovieState, UserState};
+use super::{AppState, AuthState, MovieState, MyCollectionState, UserState};
 use dotenv;
 use mongodb::{
     bson::doc,
@@ -26,9 +26,9 @@ pub async fn load() -> Result<AppState, mongodb::error::Error> {
     let client = connect_db(&db_url, &db_name).await?;
 
     create_user_collection(&client).await;
-    create_collection_collection(&client).await;
+    create_my_collection_collection(&client).await;
     create_me_too_collection(&client).await;
-    create_collection_index(client.collection::<MyCollection>("collections")).await;
+    create_my_collection_index(client.collection::<MyCollection>("mycollections")).await;
     create_me_too_index(client.collection::<MeToo>("me_too")).await;
 
     let app_state = AppState {
@@ -43,6 +43,9 @@ pub async fn load() -> Result<AppState, mongodb::error::Error> {
         },
         auth_state: AuthState {
             jwt_secret: std::env::var("JWT_SECRET").unwrap(),
+        },
+        my_collection_state: MyCollectionState {
+            collection: client.collection::<MyCollection>("mycollections"),
         },
     };
 
@@ -91,10 +94,10 @@ pub async fn create_user_collection(db: &Database) {
     }
 }
 
-pub async fn create_collection_collection(db: &Database) {
+pub async fn create_my_collection_collection(db: &Database) {
     let is_exists = db.list_collection_names(doc! {}).await.unwrap();
     for name in is_exists {
-        if name == "collections" {
+        if name == "mycollections" {
             return;
         }
     }
@@ -107,18 +110,18 @@ pub async fn create_collection_collection(db: &Database) {
         .clustered_index(clustered_index)
         .build();
 
-    match db.create_collection("collections", validation_opts).await {
+    match db.create_collection("mycollections", validation_opts).await {
         Ok(_) => {
-            tracing::info!("Created collection: collections");
+            tracing::info!("Created collection: mycollections");
         }
         Err(e) => {
-            tracing::error!("Failed to create collection: collections");
+            tracing::error!("Failed to create collection: mycollections");
             tracing::error!("Error: {}", e);
         }
     }
 }
 
-pub async fn create_collection_index(col: Collection<MyCollection>) {
+pub async fn create_my_collection_index(col: Collection<MyCollection>) {
     // 인덱스 만들 때 먼저 지우기 옵션
     // let drop_opt = DropIndexesOptions::builder().build();
     // col.drop_indexes(drop_opt).await;
@@ -128,10 +131,10 @@ pub async fn create_collection_index(col: Collection<MyCollection>) {
 
     match col.create_index(author_index, None).await {
         Ok(_) => {
-            tracing::info!("Created index: collections.author_id");
+            tracing::info!("Created index: mycollections.author_id");
         }
         Err(e) => {
-            tracing::error!("Failed to create index: collections.author_id");
+            tracing::error!("Failed to create index: mycollections.author_id");
             tracing::error!("Error: {}", e);
         }
     }

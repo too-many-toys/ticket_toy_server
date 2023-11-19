@@ -13,7 +13,7 @@ use tokio::fs::write;
 
 use crate::{
     auth,
-    config::UserState,
+    config::{MyCollectionState, UserState},
     errors::AppError,
     model::{
         my_collection::MyCollection,
@@ -105,9 +105,9 @@ pub async fn set_user_info(State(user_state): State<UserState>, Json(payload): J
 
 pub async fn put_my_collection(
     Extension(token): Extension<Claims>,
-    State(user_state): State<UserState>,
+    State(mc_state): State<MyCollectionState>,
     mut multipart: Multipart,
-) -> Result<String, AppError> {
+) -> Result<Json<String>, AppError> {
     let mut my_collection = MyCollection::default();
     my_collection.author_id = ObjectId::from_str(token.sub.clone().as_str()).unwrap();
     while let Some(field) = multipart.next_field().await.unwrap() {
@@ -156,5 +156,9 @@ pub async fn put_my_collection(
         }
     }
 
-    Ok("asdf".to_string())
+    if let Err(s) = mc_state.collection.insert_one(my_collection, None).await {
+        return Err(AppError::Api(s.to_string()));
+    }
+
+    Ok(Json("OK".to_string()))
 }
