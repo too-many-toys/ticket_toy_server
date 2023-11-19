@@ -46,7 +46,6 @@ pub async fn signin(
     State(user_state): State<UserState>,
     Json(payload): Json<UserId>,
 ) -> Result<Json<SigninResponse>, AppError> {
-    tracing::info!("1");
     let user = user_state
         .collection
         .find_one(doc! {"uid": payload.uid.clone()}, None)
@@ -56,7 +55,7 @@ pub async fn signin(
     } else {
         user.unwrap()
     };
-    tracing::info!("2");
+
     let user_id = if let None = user {
         let user = user_state
             .collection
@@ -77,14 +76,14 @@ pub async fn signin(
         } else {
             user.unwrap()
         };
-        tracing::info!("3");
+
         user.inserted_id.to_string()
     } else {
         user.unwrap().id.unwrap().to_string()
     };
 
     let jwt = auth::create(user_id);
-    tracing::info!("4");
+
     Ok(Json(SigninResponse {
         token: jwt.unwrap(),
     }))
@@ -126,10 +125,16 @@ pub async fn put_my_collection(
             //     let is_post = field.text().await.unwrap();
             // }
             "rating" => {
-                my_collection.rating = Some(field.text().await.unwrap().parse().unwrap());
+                if let Ok(r) = field.text().await {
+                    if let Ok(s) = r.parse() {
+                        my_collection.rating = Some(s);
+                    }
+                }
             }
             "content" => {
-                my_collection.content = Some(field.text().await.unwrap());
+                if let Ok(r) = field.text().await {
+                    my_collection.rating = Some(r);
+                }
             }
             "image" => {
                 let path = format!("/usr/local/var/images/{}", token.sub.clone());
@@ -156,8 +161,6 @@ pub async fn put_my_collection(
             _ => {}
         }
     }
-
-    tracing::info!("collection: {:?}", my_collection);
 
     Ok("asdf".to_string())
 }
